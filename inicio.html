@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta de Archivos - Nueva EPS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url('fondoeps.jpg'); /* ← Asegúrate de que fondoeps.jpg esté en la misma carpeta */
+      background-size: cover;
+      background-position: center;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #logo {
+      width: 150px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #00529B;
+    }
+
+    .mensaje {
+      font-size: 16px;
+      margin: 10px auto;
+      max-width: 90%;
+      color: #222;
+      background-color: rgba(255,255,255,0.85);
+      padding: 12px;
+      border-radius: 10px;
+    }
+
+    button {
+      background-color: #00529B;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    button:hover {
+      background-color: #003F7D;
+    }
+
+    input {
+      margin-top: 20px;
+      padding: 8px;
+      width: 80%;
+      max-width: 400px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    #resultContainer {
+      display: flex;
+      justify-content: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      margin-top: 20px;
+      padding-bottom: 10px;
+    }
+
+    .file-card {
+      min-width: 200px;
+      margin: 0 10px;
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .file-link {
+      color: #00529B;
+      font-weight: bold;
+      text-decoration: none;
+      display: block;
+      font-size: 15px;
+    }
+
+    .file-link:hover {
+      text-decoration: underline;
+    }
+
+    @media screen and (max-width: 600px) {
+      h1 { font-size: 20px; }
+      .mensaje { font-size: 14px; }
+      .file-card { min-width: 160px; }
+    }
+  </style>
+</head>
+<body>
+  <img id="logo" src="logo.png" alt="Logo Nueva EPS">
+  <h1>Bienvenido a la plataforma de consulta de archivos</h1>
+  <div class="mensaje">
+    Esta herramienta está diseñada para facilitar el acceso a documentos relevantes de la Nueva EPS.
+    Puedes buscar por nombre o palabras relacionadas para encontrar el archivo que necesitas.
+  </div>
+
+  <button onclick="document.getElementById('searchSection').scrollIntoView()">Consulta de Archivos</button>
+
+  <div id="searchSection">
+    <input id="searchBar" type="text" placeholder="Buscar documento por nombre o sinónimo">
+    <br>
+    <button id="searchBtn" onclick="buscar()">Buscar</button>
+    <div id="resultContainer"></div>
+  </div>
+
+  <script>
+    const API_KEY = 'AIzaSyAvOMSt1riEy1J-cf0nedd-1R3GZAg3puU';
+    const FOLDER_ID = '1V8kpKn5aAd1SP7V4RhRwuH4bEobCc0WR';
+
+    const sinonimos = {
+      "historial": ["registro", "expediente", "historia"],
+      "informe": ["reporte", "análisis"],
+      "balance": ["estado", "cuentas"],
+      "excel": ["hoja", "planilla", "cálculo"],
+      "documento": ["archivo", "informe"]
+    };
+
+    function obtenerIcono(nombreArchivo) {
+      const ext = nombreArchivo.toLowerCase();
+      if (ext.endsWith(".pdf")) return "📕";
+      if (ext.endsWith(".doc") || ext.endsWith(".docx")) return "📄";
+      if (ext.endsWith(".xls") || ext.endsWith(".xlsx")) return "📊";
+      if (ext.endsWith(".ppt") || ext.endsWith(".pptx")) return "📽️";
+      if (ext.endsWith(".txt")) return "📃";
+      return "📁";
+    }
+
+    async function buscar() {
+      const query = document.getElementById("searchBar").value.toLowerCase();
+      const resultContainer = document.getElementById("resultContainer");
+      resultContainer.innerHTML = "";
+
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}`
+      );
+      const data = await response.json();
+      const archivos = data.files || [];
+
+      const palabrasRelacionadas = [query];
+      for (let palabra in sinonimos) {
+        if (query.includes(palabra)) {
+          palabrasRelacionadas.push(...sinonimos[palabra]);
+        }
+      }
+
+      const resultados = archivos.filter(file =>
+        palabrasRelacionadas.some(palabra => file.name.toLowerCase().includes(palabra))
+      );
+
+      if (resultados.length > 0) {
+        resultados.forEach(file => {
+          const card = document.createElement("div");
+          card.className = "file-card";
+
+          const icono = obtenerIcono(file.name);
+          const link = document.createElement("a");
+          link.href = `https://drive.google.com/file/d/${file.id}/view`;
+          link.textContent = `${icono} ${file.name}`;
+          link.className = "file-link";
+          link.target = "_blank";
+
+          card.appendChild(link);
+          resultContainer.appendChild(card);
+        });
+      } else {
+        resultContainer.innerHTML = "<div class='mensaje'>🔍 No se encontró ningún documento con ese nombre.</div>";
+      }
+    }
+  </script>
+</body>
+</html>
